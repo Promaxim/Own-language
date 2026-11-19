@@ -1,62 +1,44 @@
 #include <iostream>
-#include <string>
-#include <sstream>
 #include <vector>
+#include <string>
 
-std::string evaluate_custom_language(const std::string& input) {
-    size_t start = input.find_first_not_of(" \t\n\r");
-    if (start == std::string::npos) return "";
-    size_t end = input.find_last_not_of(" \t\n\r");
-    std::string trimmed = input.substr(start, end - start + 1);
+struct Cell {
+    char character = ' ';
+    std::string color = "\033[37m";
+};
 
-    if (trimmed.empty()) return "";
+const int COLS = 60;
+const int ROWS = 15;
 
-    std::stringstream ss(trimmed);
-    std::string command;
-    ss >> command;
-
-    if (command == "exit") {
-        std::cout << "Exiting terminal. Goodbye!\n";
-        std::exit(0);
-    } 
-    else if (command == "say") {
-        std::string message;
-        std::getline(ss, message);
-        if (!message.empty() && message[0] == ' ') {
-            message = message.substr(1);
+void drawScreen(const std::vector<Cell>& grid) {
+    std::cout << "\033[H"; 
+    for (int y = 0; y < ROWS; ++y) {
+        for (int x = 0; x < COLS; ++x) {
+            const Cell& c = grid[y * COLS + x];
+            std::cout << c.color << c.character;
         }
-        return message.empty() ? "Usage: say [your message]" : message;
-    } 
-    else {
-        return "Unknown command in your language: '" + command + "'";
+        std::cout << "\033[0m\n";
     }
 }
 
 int main() {
-    std::ios_base::sync_with_stdio(false);
-    std::cin.tie(nullptr);
+    std::vector<Cell> grid(COLS * ROWS);
+    std::string input;
+    int currentRow = 0;
 
-    std::cout << "========================================\n";
-    std::cout << "      Custom C++ Terminal v1.0          \n";
-    std::cout << "      Type 'exit' to quit               \n";
-    std::cout << "========================================\n\n";
-
-    std::string input_buffer;
-    input_buffer.reserve(512);
+    std::cout << "\033[2J"; 
 
     while (true) {
-        std::cout << "mylang> ";
-        std::cout.flush(); 
+        drawScreen(grid);
+        std::cout << "\033[32mmy-lang> \033[0m";
+        if (!std::getline(std::cin, input) || input == "exit") break;
 
-        if (!std::getline(std::cin, input_buffer)) {
-            break; 
+        for (size_t i = 0; i < input.size() && i < COLS; ++i) {
+            grid[currentRow * COLS + i].character = input[i];
+            grid[currentRow * COLS + i].color = "\033[36m";
         }
-
-        std::string result = evaluate_custom_language(input_buffer);
-        if (!result.empty()) {
-            std::cout << result << "\n";
-        }
+        currentRow = (currentRow + 1) % ROWS;
     }
-
     return 0;
 }
+
